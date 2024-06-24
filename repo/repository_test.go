@@ -3,7 +3,6 @@ package repo
 import (
 	"dataflow/models"
 	"github.com/stretchr/testify/assert"
-	"math/big"
 	"testing"
 	"time"
 )
@@ -52,7 +51,7 @@ func TestInMemoryRepository_AddSale(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestInMemoryRepository_CalculateSales(t *testing.T) {
+func TestInMemoryRepository_GetSalesInRange(t *testing.T) {
 	repo := NewInMemoryRepository()
 
 	sale1 := &models.Sale{
@@ -67,7 +66,7 @@ func TestInMemoryRepository_CalculateSales(t *testing.T) {
 		StoreId:      "9876",
 		QuantitySold: 5,
 		SalePrice:    9.99,
-		SaleDate:     time.Date(2024, 6, 16, 10, 0, 0, 0, time.UTC),
+		SaleDate:     time.Date(2024, 6, 30, 10, 0, 0, 0, time.UTC),
 	}
 
 	repo.AddSale(sale1)
@@ -75,9 +74,9 @@ func TestInMemoryRepository_CalculateSales(t *testing.T) {
 
 	startDate := time.Date(2024, 6, 1, 14, 30, 0, 0, time.UTC)
 	endDate := time.Date(2024, 6, 16, 14, 30, 0, 0, time.UTC)
-	expectedTotal := new(big.Float).SetPrec(20).SetFloat64(199.90)
 
-	totalSales, err := repo.CalculateSales(startDate, endDate, sale1.StoreId)
+	sales, err := repo.GetSalesInRange(startDate, endDate, sale1.StoreId)
 	assert.Nil(t, err)
-	assert.Equal(t, expectedTotal, totalSales)
+	assert.Equal(t, 1, len(sales))
+	assert.Contains(t, sales, sale1)
 }
