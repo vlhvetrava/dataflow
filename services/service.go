@@ -4,6 +4,7 @@ import (
 	"dataflow/models"
 	"dataflow/repo"
 	"errors"
+	"fmt"
 	"math/big"
 	"time"
 )
@@ -25,13 +26,17 @@ func NewDataService(repo repo.Repository) DataService {
 }
 
 func (ds *dataService) GetAllSales() ([]*models.Sale, error) {
-	return ds.repo.GetAllSales()
+	sales, err := ds.repo.GetAllSales()
+	if err != nil {
+		return nil, fmt.Errorf("couldn't get sales: %w", err)
+	}
+	return sales, nil
 }
 
 func (ds *dataService) AddSale(sale *models.Sale) error {
 	err := ds.repo.AddSale(sale)
 	if err != nil {
-		return err
+		return fmt.Errorf("couldn't add sale: %w", err)
 	}
 	return nil
 }
@@ -42,7 +47,7 @@ func (ds *dataService) CalculateSales(startDate time.Time, endDate time.Time, st
 	}
 	sales, err := ds.repo.GetSalesInRange(startDate, endDate, storeId)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("couldn't calculate sales: %w", err)
 	}
 
 	totalSales := new(big.Float).SetPrec(20).SetFloat64(0.0)
