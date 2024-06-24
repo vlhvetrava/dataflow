@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+var ErrWrongDate = errors.New("start date must be before end date")
+
 type DataService struct {
 	repo repo.Repository
 }
@@ -30,7 +32,7 @@ func (ds *DataService) AddSale(sale *models.Sale) error {
 
 func (ds *DataService) CalculateSales(startDate time.Time, endDate time.Time, storeId string) (*big.Float, error) {
 	if startDate.After(endDate) {
-		return new(big.Float).SetFloat64(0.0), errors.New("start date must be before end date")
+		return new(big.Float).SetFloat64(0.0), ErrWrongDate
 	}
 	sales, err := ds.repo.CalculateSales(startDate, endDate, storeId)
 	return sales, err

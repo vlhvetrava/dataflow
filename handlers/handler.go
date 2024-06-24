@@ -67,9 +67,19 @@ func (h *DataHandler) Calculate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	if calculateRequest.Operation != "total_sales" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported operation"})
+		return
+	}
+
 	totalSales, err := h.service.CalculateSales(calculateRequest.StartDate, calculateRequest.EndDate, calculateRequest.StoreId)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if errors.Is(err, services.ErrWrongDate) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "status": http.StatusBadRequest})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "status": http.StatusInternalServerError})
+		}
 		return
 	}
 	calculateResponse := CalculateResponse{
