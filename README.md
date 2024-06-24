@@ -25,7 +25,7 @@ Separating the repo level and using interface there allows us to abstract the da
 making the code more modular and easier to test. It also allows for flexibility in changing the storage implementation 
 without affecting the business logic.
 2. Gin framework is used for its performance and simplicity in handling HTTP requests.
-3. For calculating total sales we're using `math/big` package to better handle operations with float numbers and precision.
+3. For calculating total sales `math/big` package is used to better handle operations with float numbers and precision.
 4. `sync.Map` is used for safe concurrent access to the in-memory data store. This makes the solution scalable and efficient 
 for handling simultaneous requests in a multithreaded environment.
-5. Error handling ensures that the api will respons with proper status codes and messages.
+5. Error handling ensures that the api will respond with proper status codes and messages.
