@@ -12,10 +12,10 @@ import (
 )
 
 type DataHandler struct {
-	service *services.DataService
+	service services.DataService
 }
 
-func NewDataHandler(service *services.DataService) *DataHandler {
+func NewDataHandler(service services.DataService) *DataHandler {
 	return &DataHandler{service: service}
 }
 
