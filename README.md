@@ -29,3 +29,115 @@ without affecting the business logic.
 4. `sync.Map` is used for safe concurrent access to the in-memory data store. This makes the solution scalable and efficient 
 for handling simultaneous requests in a multithreaded environment.
 5. Error handling ensures that the api will respond with proper status codes and messages.
+
+### Use Cases
+
+#### Get All Sales
+Fetch all sales records from the database.
+
+#### GET /data
+
+**Example Request:**
+```sh
+curl -X GET http://localhost:8080/data
+```
+**Example Response:**
+
+```bash
+[
+    {
+        "id": "1",
+        "product_id": "12345",
+        "store_id": "6789",
+        "quantity_sold": 10,
+        "sale_price": 19.99,
+        "sale_date": "2024-06-15T14:30:00Z"
+    },
+    {
+        "id": "2",
+        "product_id": "54321",
+        "store_id": "9876",
+        "quantity_sold": 5,
+        "sale_price": 9.99,
+        "sale_date": "2024-06-16T10:00:00Z"
+    }
+]
+```
+
+#### Add a Sale
+Add a new sale record to the database.
+
+#### POST /data
+
+**Example Request:**
+```sh
+curl -X POST http://localhost:8080/data \
+     -H "Content-Type: application/json" \
+     -d '{
+           "product_id": "12345",
+           "store_id": "6789",
+           "quantity_sold": 10,
+           "sale_price": 19.99,
+           "sale_date": "2024-06-15T14:30:00Z"
+         }'
+```
+
+**Example Response:**
+
+```bash
+{
+"status": "success"
+}
+```
+
+#### Calculate Sales
+Calculate total sales for a specific store within a given date range. If range is empty, return all sales for a provided storeId.
+
+#### POST /calculate
+
+
+**Example Request:**
+```sh
+curl -X POST http://localhost:8080/calculate \
+     -H "Content-Type: application/json" \
+     -d '{
+           "operation": "total_sales",
+           "store_id": "6789",
+           "start_date": "2024-06-01T00:00:00Z",
+           "end_date": "2024-06-16T00:00:00Z"
+         }'
+```
+**Example Response:**
+
+```bash
+{
+    "store_id": "6789",
+    "start_date": "2024-06-01T00:00:00Z",
+    "end_date": "2024-06-16T00:00:00Z",
+    "total_sales": 199.9
+}
+```
+
+**Example Request (without dates, returns all sales for store_id):**
+
+```sh
+curl -X POST http://localhost:8080/calculate \
+     -H "Content-Type: application/json" \
+     -d '{
+           "operation": "total_sales",
+           "store_id": "6789",
+           "start_date": "",
+           "end_date": "",
+           
+         }'
+```
+**Example Response:**
+```bash
+{
+    "store_id": "6789",
+    "start_date": "",
+    "end_date": "",
+    "total_sales": 199.9
+}
+```
+
