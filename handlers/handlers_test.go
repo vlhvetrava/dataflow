@@ -3,11 +3,12 @@ package handlers
 import (
 	"bytes"
 	"dataflow/models"
-	"dataflow/repo"
 	"dataflow/services"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -15,9 +16,8 @@ import (
 )
 
 func setupHandler() *DataHandler {
-	repository := repo.NewInMemoryRepository()
-	service := services.NewDataService(repository)
-	handler := NewDataHandler(service)
+	mockService := &services.MockService{}
+	handler := NewDataHandler(mockService)
 	return handler
 }
 
@@ -41,8 +41,7 @@ func TestDataHandler_GetData(t *testing.T) {
 		SaleDate:     time.Date(2024, 6, 16, 10, 0, 0, 0, time.UTC),
 	}
 
-	handler.service.AddSale(sale1)
-	handler.service.AddSale(sale2)
+	handler.service.(*services.MockService).On("GetAllSales").Return([]*models.Sale{sale1, sale2}, nil)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -75,6 +74,8 @@ func TestDataHandler_AddData(t *testing.T) {
 	c.Request, _ = http.NewRequest("POST", "/data", bytes.NewBuffer(jsonData))
 	c.Request.Header.Set("Content-Type", "application/json")
 
+	handler.service.(*services.MockService).On("AddSale", sale).Return(nil)
+
 	handler.AddData(c)
 
 	assert.Equal(t, http.StatusCreated, w.Code)
@@ -83,25 +84,10 @@ func TestDataHandler_AddData(t *testing.T) {
 func TestDataHandler_Calculate(t *testing.T) {
 	handler := setupHandler()
 
-	sale1 := &models.Sale{
-		ID:           "1",
-		ProductId:    "12345",
-		StoreId:      "6789",
-		QuantitySold: 10,
-		SalePrice:    19.99,
-		SaleDate:     time.Date(2024, 6, 15, 14, 30, 0, 0, time.UTC),
-	}
-	sale2 := &models.Sale{
-		ID:           "2",
-		ProductId:    "54321",
-		StoreId:      "9876",
-		QuantitySold: 5,
-		SalePrice:    9.99,
-		SaleDate:     time.Date(2024, 6, 16, 10, 0, 0, 0, time.UTC),
-	}
-
-	handler.service.AddSale(sale1)
-	handler.service.AddSale(sale2)
+	startDate := time.Date(2024, 6, 1, 14, 30, 0, 0, time.UTC)
+	endDate := time.Date(2024, 6, 16, 14, 30, 0, 0, time.UTC)
+	storeId := "6789"
+	expectedTotal := new(big.Float).SetPrec(64).SetFloat64(199.90)
 
 	calculateRequest := CalculateRequest{
 		Operation: "total_sales",
@@ -109,6 +95,8 @@ func TestDataHandler_Calculate(t *testing.T) {
 		StartDate: time.Date(2024, 6, 1, 14, 30, 0, 0, time.UTC),
 		EndDate:   time.Date(2024, 6, 16, 14, 30, 0, 0, time.UTC),
 	}
+
+	handler.service.(*services.MockService).On("CalculateSales", startDate, endDate, storeId).Return(expectedTotal, nil)
 
 	jsonData, _ := json.Marshal(calculateRequest)
 	w := httptest.NewRecorder()
@@ -189,6 +177,8 @@ func TestDataHandler_Calculate_InvalidDate(t *testing.T) {
 	c, _ := gin.CreateTestContext(w)
 	c.Request, _ = http.NewRequest("POST", "/calculate", bytes.NewBuffer(jsonData))
 	c.Request.Header.Set("Content-Type", "application/json")
+
+	handler.service.(*services.MockService).On("CalculateSales", mock.Anything, mock.Anything, mock.Anything).Return(new(big.Float).SetFloat64(0.0), services.ErrWrongDate)
 
 	handler.Calculate(c)
 

@@ -10,8 +10,8 @@ import (
 )
 
 func TestDataService_GetAllSales(t *testing.T) {
-	repository := repo.NewInMemoryRepository()
-	service := NewDataService(repository)
+	mockRepo := new(repo.MockRepository)
+	service := NewDataService(mockRepo)
 
 	sale1 := &models.Sale{
 		ProductId:    "12345",
@@ -28,8 +28,7 @@ func TestDataService_GetAllSales(t *testing.T) {
 		SaleDate:     time.Date(2024, 6, 16, 10, 0, 0, 0, time.UTC),
 	}
 
-	service.AddSale(sale1)
-	service.AddSale(sale2)
+	mockRepo.On("GetAllSales").Return([]*models.Sale{sale1, sale2}, nil)
 
 	sales, err := service.GetAllSales()
 
@@ -40,8 +39,8 @@ func TestDataService_GetAllSales(t *testing.T) {
 }
 
 func TestDataService_AddSale(t *testing.T) {
-	repository := repo.NewInMemoryRepository()
-	service := NewDataService(repository)
+	mockRepo := new(repo.MockRepository)
+	service := NewDataService(mockRepo)
 
 	sale := &models.Sale{
 		ProductId:    "12345",
@@ -51,13 +50,15 @@ func TestDataService_AddSale(t *testing.T) {
 		SaleDate:     time.Date(2024, 6, 15, 14, 30, 0, 0, time.UTC),
 	}
 
+	mockRepo.On("AddSale", sale).Return(nil)
+
 	err := service.AddSale(sale)
 	assert.Nil(t, err)
 }
 
 func TestDataService_CalculateSales(t *testing.T) {
-	repository := repo.NewInMemoryRepository()
-	service := NewDataService(repository)
+	mockRepo := new(repo.MockRepository)
+	service := NewDataService(mockRepo)
 
 	sale1 := &models.Sale{
 		ProductId:    "12345",
@@ -66,19 +67,13 @@ func TestDataService_CalculateSales(t *testing.T) {
 		SalePrice:    19.99,
 		SaleDate:     time.Date(2024, 6, 15, 14, 30, 0, 0, time.UTC),
 	}
-	sale2 := &models.Sale{
-		ProductId:    "54321",
-		StoreId:      "9876",
-		QuantitySold: 5,
-		SalePrice:    9.99,
-		SaleDate:     time.Date(2024, 6, 16, 10, 0, 0, 0, time.UTC),
-	}
-
-	service.AddSale(sale1)
-	service.AddSale(sale2)
 
 	startDate := time.Date(2024, 6, 1, 14, 30, 0, 0, time.UTC)
 	endDate := time.Date(2024, 6, 16, 14, 30, 0, 0, time.UTC)
+	storeId := "6789"
+
+	mockRepo.On("GetSalesInRange", startDate, endDate, storeId).Return([]*models.Sale{sale1}, nil)
+
 	expectedTotal := new(big.Float).SetPrec(20).SetFloat64(199.90)
 
 	totalSales, err := service.CalculateSales(startDate, endDate, sale1.StoreId)
@@ -87,8 +82,10 @@ func TestDataService_CalculateSales(t *testing.T) {
 }
 
 func TestDataService_GetAllSales_Empty(t *testing.T) {
-	repository := repo.NewInMemoryRepository()
-	service := NewDataService(repository)
+	mockRepo := new(repo.MockRepository)
+	service := NewDataService(mockRepo)
+
+	mockRepo.On("GetAllSales").Return([]*models.Sale{}, nil)
 
 	sales, err := service.GetAllSales()
 
@@ -97,8 +94,8 @@ func TestDataService_GetAllSales_Empty(t *testing.T) {
 }
 
 func TestDataService_CalculateSales_NoSalesInDateRange(t *testing.T) {
-	repository := repo.NewInMemoryRepository()
-	service := NewDataService(repository)
+	mockRepo := new(repo.MockRepository)
+	service := NewDataService(mockRepo)
 
 	sale1 := &models.Sale{
 		ProductId:    "12345",
@@ -108,10 +105,12 @@ func TestDataService_CalculateSales_NoSalesInDateRange(t *testing.T) {
 		SaleDate:     time.Date(2024, 6, 15, 14, 30, 0, 0, time.UTC),
 	}
 
-	service.AddSale(sale1)
-
 	startDate := time.Date(2024, 6, 1, 14, 30, 0, 0, time.UTC)
 	endDate := time.Date(2024, 6, 10, 14, 30, 0, 0, time.UTC)
+	storeId := "6789"
+
+	mockRepo.On("GetSalesInRange", startDate, endDate, storeId).Return([]*models.Sale{}, nil)
+
 	expectedTotal := new(big.Float).SetPrec(20).SetFloat64(0.0)
 
 	totalSales, err := service.CalculateSales(startDate, endDate, sale1.StoreId)
@@ -120,22 +119,15 @@ func TestDataService_CalculateSales_NoSalesInDateRange(t *testing.T) {
 }
 
 func TestDataService_CalculateSales_NoSalesForStore(t *testing.T) {
-	repository := repo.NewInMemoryRepository()
-	service := NewDataService(repository)
-
-	sale1 := &models.Sale{
-		ProductId:    "12345",
-		StoreId:      "6789",
-		QuantitySold: 10,
-		SalePrice:    19.99,
-		SaleDate:     time.Date(2024, 6, 15, 14, 30, 0, 0, time.UTC),
-	}
-
-	service.AddSale(sale1)
+	mockRepo := new(repo.MockRepository)
+	service := NewDataService(mockRepo)
 
 	startDate := time.Date(2024, 6, 1, 14, 30, 0, 0, time.UTC)
 	endDate := time.Date(2024, 6, 16, 14, 30, 0, 0, time.UTC)
 	storeId := "9876"
+
+	mockRepo.On("GetSalesInRange", startDate, endDate, storeId).Return([]*models.Sale{}, nil)
+
 	expectedTotal := new(big.Float).SetPrec(20).SetFloat64(0.0)
 
 	totalSales, err := service.CalculateSales(startDate, endDate, storeId)
