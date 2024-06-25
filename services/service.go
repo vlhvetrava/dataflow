@@ -42,7 +42,9 @@ func (ds *dataService) AddSale(sale *models.Sale) error {
 }
 
 func (ds *dataService) CalculateSales(startDate time.Time, endDate time.Time, storeId string) (*big.Float, error) {
-	if startDate.After(endDate) {
+	if endDate.IsZero() {
+		endDate = time.Time{}
+	} else if !startDate.IsZero() && startDate.After(endDate) {
 		return new(big.Float).SetFloat64(0.0), ErrWrongDate
 	}
 	sales, err := ds.repo.GetSalesInRange(startDate, endDate, storeId)

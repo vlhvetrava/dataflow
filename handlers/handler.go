@@ -47,16 +47,16 @@ func (h *DataHandler) AddData(c *gin.Context) {
 }
 
 type CalculateRequest struct {
-	Operation string    `json:"operation"`
-	StoreId   string    `json:"store_id"`
-	StartDate time.Time `json:"start_date"`
-	EndDate   time.Time `json:"end_date"`
+	Operation string `json:"operation"`
+	StoreId   string `json:"store_id"`
+	StartDate string `json:"start_date,omitempty"`
+	EndDate   string `json:"end_date,omitempty"`
 }
 
 type CalculateResponse struct {
 	StoreId    string     `json:"store_id"`
-	StartDate  time.Time  `json:"start_date"`
-	EndDate    time.Time  `json:"end_date"`
+	StartDate  string     `json:"start_date"`
+	EndDate    string     `json:"end_date"`
 	TotalSales *big.Float `json:"total_sales"`
 }
 
@@ -73,7 +73,27 @@ func (h *DataHandler) Calculate(c *gin.Context) {
 		return
 	}
 
-	totalSales, err := h.service.CalculateSales(calculateRequest.StartDate, calculateRequest.EndDate, calculateRequest.StoreId)
+	var startDate time.Time
+	var endDate time.Time
+
+	if calculateRequest.StartDate != "" {
+		t, err := time.Parse(time.RFC3339, calculateRequest.StartDate)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		startDate = t
+	}
+	if calculateRequest.EndDate != "" {
+		t, err := time.Parse(time.RFC3339, calculateRequest.EndDate)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		endDate = t
+	}
+
+	totalSales, err := h.service.CalculateSales(startDate, endDate, calculateRequest.StoreId)
 	if err != nil {
 		if errors.Is(err, services.ErrWrongDate) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "status": http.StatusBadRequest})

@@ -92,8 +92,8 @@ func TestDataHandler_Calculate(t *testing.T) {
 	calculateRequest := CalculateRequest{
 		Operation: "total_sales",
 		StoreId:   "6789",
-		StartDate: time.Date(2024, 6, 1, 14, 30, 0, 0, time.UTC),
-		EndDate:   time.Date(2024, 6, 16, 14, 30, 0, 0, time.UTC),
+		StartDate: startDate.Format(time.RFC3339),
+		EndDate:   endDate.Format(time.RFC3339),
 	}
 
 	handler.service.(*services.MockService).On("CalculateSales", startDate, endDate, storeId).Return(expectedTotal, nil)
@@ -146,8 +146,8 @@ func TestDataHandler_Calculate_InvalidOperation(t *testing.T) {
 	calculateRequest := CalculateRequest{
 		Operation: "invalid_operation",
 		StoreId:   "9876",
-		StartDate: time.Date(2024, 6, 1, 14, 30, 0, 0, time.UTC),
-		EndDate:   time.Date(2024, 6, 16, 14, 30, 0, 0, time.UTC),
+		StartDate: time.Date(2024, 6, 1, 14, 30, 0, 0, time.UTC).Format(time.RFC3339),
+		EndDate:   time.Date(2024, 6, 16, 14, 30, 0, 0, time.UTC).Format(time.RFC3339),
 	}
 
 	jsonData, _ := json.Marshal(calculateRequest)
@@ -168,8 +168,8 @@ func TestDataHandler_Calculate_InvalidDate(t *testing.T) {
 	calculateRequest := CalculateRequest{
 		Operation: "total_sales",
 		StoreId:   "9876",
-		StartDate: time.Date(2024, 6, 20, 14, 30, 0, 0, time.UTC),
-		EndDate:   time.Date(2024, 6, 16, 14, 30, 0, 0, time.UTC),
+		StartDate: time.Date(2024, 6, 20, 14, 30, 0, 0, time.UTC).Format(time.RFC3339),
+		EndDate:   time.Date(2024, 6, 16, 14, 30, 0, 0, time.UTC).Format(time.RFC3339),
 	}
 
 	jsonData, _ := json.Marshal(calculateRequest)
@@ -184,4 +184,66 @@ func TestDataHandler_Calculate_InvalidDate(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "start date must be before end date")
+}
+
+func TestDataHandler_Calculate_EmptyStartDate(t *testing.T) {
+	handler := setupHandler()
+
+	endDate := time.Date(2024, 6, 16, 14, 30, 0, 0, time.UTC)
+	storeId := "6789"
+	expectedTotal := new(big.Float).SetPrec(64).SetFloat64(199.90)
+
+	calculateRequest := CalculateRequest{
+		Operation: "total_sales",
+		StoreId:   "6789",
+		EndDate:   endDate.Format(time.RFC3339),
+	}
+
+	handler.service.(*services.MockService).On("CalculateSales", time.Time{}, endDate, storeId).Return(expectedTotal, nil)
+
+	jsonData, _ := json.Marshal(calculateRequest)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request, _ = http.NewRequest("POST", "/calculate", bytes.NewBuffer(jsonData))
+	c.Request.Header.Set("Content-Type", "application/json")
+
+	handler.Calculate(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var calculateResponse CalculateResponse
+	err := json.Unmarshal(w.Body.Bytes(), &calculateResponse)
+	assert.NoError(t, err)
+	assert.Equal(t, "6789", calculateResponse.StoreId)
+	assert.NotNil(t, calculateResponse.TotalSales)
+}
+
+func TestDataHandler_Calculate_EmptyEndDate(t *testing.T) {
+	handler := setupHandler()
+
+	startDate := time.Date(2024, 6, 1, 14, 30, 0, 0, time.UTC)
+	storeId := "6789"
+	expectedTotal := new(big.Float).SetPrec(64).SetFloat64(199.90)
+
+	calculateRequest := CalculateRequest{
+		Operation: "total_sales",
+		StoreId:   "6789",
+		StartDate: startDate.Format(time.RFC3339),
+	}
+
+	handler.service.(*services.MockService).On("CalculateSales", startDate, time.Time{}, storeId).Return(expectedTotal, nil)
+
+	jsonData, _ := json.Marshal(calculateRequest)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request, _ = http.NewRequest("POST", "/calculate", bytes.NewBuffer(jsonData))
+	c.Request.Header.Set("Content-Type", "application/json")
+
+	handler.Calculate(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var calculateResponse CalculateResponse
+	err := json.Unmarshal(w.Body.Bytes(), &calculateResponse)
+	assert.NoError(t, err)
+	assert.Equal(t, "6789", calculateResponse.StoreId)
+	assert.NotNil(t, calculateResponse.TotalSales)
 }

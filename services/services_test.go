@@ -134,3 +134,50 @@ func TestDataService_CalculateSales_NoSalesForStore(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, expectedTotal, totalSales)
 }
+
+func TestDataService_CalculateSales_ZeroStartDate(t *testing.T) {
+	mockRepo := new(repo.MockRepository)
+	service := NewDataService(mockRepo)
+
+	endDate := time.Date(2024, 6, 16, 14, 30, 0, 0, time.UTC)
+	storeId := "6789"
+
+	mockRepo.On("GetSalesInRange", time.Time{}, endDate, storeId).Return([]*models.Sale{}, nil)
+
+	expectedTotal := new(big.Float).SetPrec(20).SetFloat64(0.0)
+
+	totalSales, err := service.CalculateSales(time.Time{}, endDate, storeId)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedTotal, totalSales)
+}
+
+func TestDataService_CalculateSales_ZeroEndDate(t *testing.T) {
+	mockRepo := new(repo.MockRepository)
+	service := NewDataService(mockRepo)
+
+	startDate := time.Date(2024, 6, 1, 14, 30, 0, 0, time.UTC)
+	storeId := "6789"
+
+	mockRepo.On("GetSalesInRange", startDate, time.Time{}, storeId).Return([]*models.Sale{}, nil)
+
+	expectedTotal := new(big.Float).SetPrec(20).SetFloat64(0.0)
+
+	totalSales, err := service.CalculateSales(startDate, time.Time{}, storeId)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedTotal, totalSales)
+}
+
+func TestDataService_CalculateSales_ZeroStartDateAndEndDate(t *testing.T) {
+	mockRepo := new(repo.MockRepository)
+	service := NewDataService(mockRepo)
+
+	storeId := "6789"
+
+	mockRepo.On("GetSalesInRange", time.Time{}, time.Time{}, storeId).Return([]*models.Sale{}, nil)
+
+	expectedTotal := new(big.Float).SetPrec(20).SetFloat64(0.0)
+
+	totalSales, err := service.CalculateSales(time.Time{}, time.Time{}, storeId)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedTotal, totalSales)
+}

@@ -46,7 +46,9 @@ func (repo *InMemoryRepository) GetSalesInRange(startDate time.Time, endDate tim
 	var sales []*models.Sale
 	repo.data.Range(func(k, v interface{}) bool {
 		sale := v.(*models.Sale)
-		if storeId == sale.StoreId && sale.SaleDate.Before(endDate) && sale.SaleDate.After(startDate) {
+		if storeId == sale.StoreId &&
+			(endDate.IsZero() || sale.SaleDate.Before(endDate)) &&
+			(startDate.IsZero() || sale.SaleDate.After(startDate)) {
 			sales = append(sales, sale)
 		}
 		return true
